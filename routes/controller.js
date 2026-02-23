@@ -4,14 +4,7 @@ import axios from "axios";
 export const getUsuarios = async (req, res) => {
     try {
         const result = await pool.query(`
-            SELECT 
-                u.idUsuario,
-                CONCAT(u.usuNom, ' ', u.usuPrimerApellido, ' ', u.usuSegundoApellido) AS nombreCompleto,
-                DATE_PART('year', AGE(u.usuFechaNacimiento)) AS edad,
-                u.usuSexo,
-                u.usuRFC,
-                u.usuCURP,
-                u.usuActivo
+            SELECT *
             FROM Usuario u;
         `);
 
@@ -41,6 +34,7 @@ export const createUsuario = async (req, res) => {
             email,
             rolId,
             activo,
+            empleadoVoluntario,
             calle,
             numExterior,
             numInterior,
@@ -50,7 +44,8 @@ export const createUsuario = async (req, res) => {
             estadoClave,
             municipioNombre,
             municipioClave,
-            coloniaNombre
+            coloniaNombre,
+            urlIMG
         } = req.body;
 
         await client.query("BEGIN");
@@ -191,10 +186,10 @@ export const createUsuario = async (req, res) => {
       VALUES (
         $1,$2,$3,$4,$5,$6,$7,
         $8,$9,$10,$11,
-        0,
-        $12,$13,$14,$15,
+        $12,
+        $13,$14,$15,$16,
         NOW(),
-        'default.png'
+        $17
       )`,
             [
                 nombre,
@@ -208,10 +203,12 @@ export const createUsuario = async (req, res) => {
                 idColonia,
                 idMunicipio,
                 idEstado,
+                empleadoVoluntario,
                 password,
                 email,
                 rolId,
-                activo
+                activo,
+                urlIMG
             ]
         );
 
