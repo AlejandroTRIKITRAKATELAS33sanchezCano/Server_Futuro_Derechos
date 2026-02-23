@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { getEmpleados } from "./controller.js";
+import { getUsuarios, createUsuario, getInfoByCP } from "./controller.js";
 
 const router = Router();
 
@@ -7,7 +7,9 @@ router.get('/ping', (req, res) => {
     res.json({ message: "pong 🏓" });
 });
 
-router.get('/empleados', getEmpleados);
+router.get("/usuarios", getUsuarios);
+router.post("/usuarios/crearUsuario", createUsuario)
+router.get('/cp/:codigoPostal', getInfoByCP);
 
 
 export default router;
