@@ -1,5 +1,6 @@
 import { pool } from '../db.js';
 import axios from "axios";
+import nodemailer from "nodemailer";
 
 export const getUsuarios = async (req, res) => {
     try {
@@ -20,6 +21,23 @@ export const getUsuarios = async (req, res) => {
         res.status(500).json({ message: "Error obteniendo usuarios" });
     }
 };
+
+export const getRoles = async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT 
+                *
+            FROM rol;
+        `);
+
+        res.json(result.rows);
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error obteniendo usuarios" });
+    }
+};
+
 
 export const createUsuario = async (req, res) => {
 
@@ -218,6 +236,25 @@ export const createUsuario = async (req, res) => {
         );
 
         await client.query("COMMIT");
+        const transporter = nodemailer.createTransport({
+            service: "gmail",
+            auth: {
+                user: "sanchez.cano.alejandro33@gmail.com",
+                pass: "aqui contraseña."
+            }
+        });
+
+        await transporter.sendMail({
+            from: `"Sistema" <${process.env.EMAIL_USER}>`,
+            to: email,
+            subject: "Tu cuenta ha sido creada",
+            html: `
+        <h2>Hola ${nombre}</h2>
+        <p>Tu cuenta fue creada correctamente.</p>
+        <p><strong>Contraseña temporal:</strong> ${password}</p>
+        <p>Por favor cámbiala al iniciar sesión.</p>
+    `
+        });
 
         res.json({ message: "Usuario creado correctamente" });
 
