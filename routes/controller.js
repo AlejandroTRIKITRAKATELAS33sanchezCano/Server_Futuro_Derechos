@@ -4,8 +4,13 @@ import axios from "axios";
 export const getUsuarios = async (req, res) => {
     try {
         const result = await pool.query(`
-            SELECT *
-            FROM Usuario u;
+            SELECT 
+                idusuario,
+                usunom || ' ' || usuprimerapellido || ' ' || ususegundoapellido AS nombre_completo,
+                usurfc,
+                usucurp,
+                usuactivo
+            FROM Usuario;
         `);
 
         res.json(result.rows);
@@ -228,42 +233,42 @@ export const createUsuario = async (req, res) => {
 };
 
 export const getInfoByCP = async (req, res) => {
-  const { codigoPostal } = req.params;
+    const { codigoPostal } = req.params;
 
-  try {
-    const response = await fetch(
-      `https://sepomex.icalialabs.com/api/v1/zip_codes?zip_code=${codigoPostal}&per_page=200`
-    );
+    try {
+        const response = await fetch(
+            `https://sepomex.icalialabs.com/api/v1/zip_codes?zip_code=${codigoPostal}&per_page=200`
+        );
 
-    const data = await response.json();
+        const data = await response.json();
 
-    if (!data.zip_codes || data.zip_codes.length === 0) {
-      return res.status(404).json({
-        message: "Código postal no encontrado"
-      });
+        if (!data.zip_codes || data.zip_codes.length === 0) {
+            return res.status(404).json({
+                message: "Código postal no encontrado"
+            });
+        }
+
+        const zipData = data.zip_codes;
+
+        const estadoNombre = zipData[0].d_estado;
+        const estadoClave = zipData[0].c_estado;
+        const municipioNombre = zipData[0].d_mnpio;
+        const municipioClave = zipData[0].c_mnpio;
+
+        const colonias = zipData.map(z => z.d_asenta);
+
+        res.json({
+            estadoNombre,
+            estadoClave,
+            municipioNombre,
+            municipioClave,
+            colonias
+        });
+
+    } catch (error) {
+        console.error("Error consultando Sepomex:", error);
+        res.status(500).json({
+            message: "Error consultando Sepomex"
+        });
     }
-
-    const zipData = data.zip_codes;
-
-    const estadoNombre = zipData[0].d_estado;
-    const estadoClave = zipData[0].c_estado;
-    const municipioNombre = zipData[0].d_mnpio;
-    const municipioClave = zipData[0].c_mnpio;
-
-    const colonias = zipData.map(z => z.d_asenta);
-
-    res.json({
-      estadoNombre,
-      estadoClave,
-      municipioNombre,
-      municipioClave,
-      colonias
-    });
-
-  } catch (error) {
-    console.error("Error consultando Sepomex:", error);
-    res.status(500).json({
-      message: "Error consultando Sepomex"
-    });
-  }
 };
