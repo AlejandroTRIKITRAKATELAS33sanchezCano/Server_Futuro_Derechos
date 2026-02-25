@@ -1,16 +1,20 @@
-import { Router } from "express";
-import { getUsuarios, createUsuario, getInfoByCP, getRoles } from "./controller.js";
+import express from "express";
+import {
+  login,
+  getUsuarios,
+  getRoles,
+  createUsuario
+} from "../routes/controller.js";
 
-const router = Router();
+import { verifyToken } from "../middlewares/authMiddleware.js";
 
-router.get('/ping', (req, res) => {
-    res.json({ message: "pong 🏓" });
-});
+const router = express.Router();
 
-router.get("/usuarios", getUsuarios);
-router.post("/usuarios/crearUsuario", createUsuario)
-router.get('/cp/:codigoPostal', getInfoByCP);
-router.get('/roles', getRoles)
+router.post("/login", login);
 
+//Rutas protegidas
+router.get("/usuarios", verifyToken, getUsuarios);
+router.get("/roles", verifyToken, getRoles);
+router.post("/usuarios", verifyToken, createUsuario);
 
 export default router;

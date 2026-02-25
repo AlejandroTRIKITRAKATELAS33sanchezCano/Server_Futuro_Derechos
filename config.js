@@ -1,1 +1,2 @@
 export const PORT = 3000;
+export const JWT_SECRET= "TRIKITRAKATELAS_BOLIVIANO_CROQUETAS_chupistirifantastico_ADS_BobEsponajaAudifonosMeme";

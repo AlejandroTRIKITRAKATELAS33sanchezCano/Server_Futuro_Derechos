@@ -1,6 +1,55 @@
 import { pool } from '../db.js';
+import { JWT_SECRET } from '../config.js'
 import axios from "axios";
 import nodemailer from "nodemailer";
+import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
+
+
+export const login = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        const result = await pool.query(
+            "SELECT * FROM usuario WHERE usuemail = $1",
+            [email]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(400).json({ message: "Usuario no encontrado" });
+        }
+
+        const user = result.rows[0];
+
+        if (user.usuactivo !== 1) {
+            return res.status(403).json({ message: "Usuario inactivo" });
+        }
+
+        const validPassword = await bcrypt.compare(
+            password,
+            user.usucontrasenna
+        );
+
+        if (!validPassword) {
+            return res.status(400).json({ message: "Contraseña incorrecta" });
+        }
+
+        const token = jwt.sign(
+            {
+                id: user.idusuario,
+                rol: user.rol_idrol
+            },
+            JWT_SECRET,
+            { expiresIn: "8h" }
+        );
+
+        res.json({ token });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error en el servidor" });
+    }
+};
 
 export const getUsuarios = async (req, res) => {
     try {
@@ -185,6 +234,7 @@ export const createUsuario = async (req, res) => {
             USUARIO
         ========================== */
 
+        const hashedPassword = await bcrypt.hash(password, 10);
         await client.query(
             `INSERT INTO Usuario (
         usuNom,
@@ -227,7 +277,7 @@ export const createUsuario = async (req, res) => {
                 idMunicipio,
                 idEstado,
                 empleadoVoluntario,
-                password,
+                hashedPassword,
                 email,
                 rolId,
                 activo,
@@ -235,17 +285,19 @@ export const createUsuario = async (req, res) => {
             ]
         );
 
+        console.log("Password original:", password);
+        console.log("Password hash:", hashedPassword);
         await client.query("COMMIT");
         const transporter = nodemailer.createTransport({
             service: "gmail",
             auth: {
                 user: "sanchez.cano.alejandro33@gmail.com",
-                pass: "aqui contraseña."
+                pass: "hilreahrfvgcyfcz"
             }
         });
 
         await transporter.sendMail({
-            from: `"Sistema" <${process.env.EMAIL_USER}>`,
+            from: `"Sistema" <sanchez.cano.alejandro33@gmail.com>`,
             to: email,
             subject: "Tu cuenta ha sido creada",
             html: `
