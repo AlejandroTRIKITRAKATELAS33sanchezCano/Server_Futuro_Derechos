@@ -3,7 +3,8 @@ import {
   login,
   getUsuarios,
   getRoles,
-  createUsuario
+  createUsuario,
+  getInfoByCP
 } from "../routes/controller.js";
 
 import { verifyToken } from "../middlewares/authMiddleware.js";
@@ -14,7 +15,8 @@ router.post("/login", login);
 
 //Rutas protegidas
 router.get("/usuarios", verifyToken, getUsuarios);
-router.get("/roles", verifyToken, getRoles);
-router.post("/usuarios", verifyToken, createUsuario);
+router.get("/roles", getRoles);
+router.get('/cp/:codigoPostal', getInfoByCP);
+router.post("/usuarios", createUsuario);
 
 export default router;
