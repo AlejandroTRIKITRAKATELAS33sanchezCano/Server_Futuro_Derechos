@@ -15,8 +15,8 @@ router.post("/login", login);
 
 //Rutas protegidas
 router.get("/usuarios", verifyToken, getUsuarios);
-router.get("/roles", getRoles);
+router.get("/roles", verifyToken,getRoles);
 router.get('/cp/:codigoPostal', getInfoByCP);
-router.post("/usuarios", createUsuario);
+router.post("/usuarios/crearUsuario", verifyToken,createUsuario);
 
 export default router;
