@@ -37,7 +37,8 @@ export const login = async (req, res) => {
         const token = jwt.sign(
             {
                 id: user.idusuario,
-                rol: user.rol_idrol
+                rol: user.rol_idrol,
+                name : user.usunom
             },
             JWT_SECRET,
             { expiresIn: "8h" }
@@ -359,5 +360,179 @@ export const getInfoByCP = async (req, res) => {
         res.status(500).json({
             message: "Error consultando Sepomex"
         });
+    }
+};
+
+export const getUsuarioById = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const result = await pool.query(`
+            SELECT 
+                u.idusuario,
+                u.usunom AS nombre,
+                u.usuprimerapellido AS "primerApellido",
+                u.ususegundoapellido AS "segundoApellido",
+                TO_CHAR(u.usufechanacimiento, 'YYYY-MM-DD') AS "fechaNacimiento",
+                u.ususexo AS sexo,
+                u.usurfc AS rfc,
+                u.usucurp AS curp,
+                u.usuvoluntarioempleado AS "empleadoVoluntario",
+                u.rol_idrol AS rolid,
+                u.usuemail AS email,
+                u.usuactivo,
+                
+                d.udircalle AS calle,
+                d.udirnumexterior AS "numExterior",
+                d.udirnuminterior AS "numInterior",
+                d.udirreferencia AS referencia,
+                
+                c.colnombre AS "coloniaNombre",
+                c.colcodigopostal AS "codigoPostal",
+                
+                e.estnombre AS "estadoNombre",
+                e.estclaveentidad AS "estadoClave",
+                
+                m.munnombre AS "municipioNombre",
+                m.munclave AS "municipioClave"
+
+            FROM usuario u
+            JOIN direccion d ON u.direccion_idusudireccion = d.idusudireccion
+            JOIN colonia c ON d.colonia_idcolonia = c.idcolonia
+            JOIN municipio m ON c.municipio_idmunicipio = m.idmunicipio
+            JOIN estado e ON m.estado_idestado = e.idestado
+            WHERE u.idusuario = $1
+        `, [id]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: "Usuario no encontrado" });
+        }
+
+        res.json(result.rows[0]);
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error obteniendo usuario" });
+    }
+};
+
+export const updateUsuario = async (req, res) => {
+    const { id } = req.params;
+    const client = await pool.connect();
+
+    try {
+        await client.query("BEGIN");
+
+        const {
+            nombre,
+            primerApellido,
+            segundoApellido,
+            fechaNacimiento,
+            sexo,
+            rfc,
+            curp,
+            empleadoVoluntario,
+            rolId,
+            email,
+            calle,
+            numExterior,
+            numInterior,
+            referencia
+        } = req.body;
+
+        // Obtener idDireccion
+        const dirResult = await client.query(
+            `SELECT direccion_idusudireccion 
+             FROM usuario 
+             WHERE idusuario = $1`,
+            [id]
+        );
+
+        const idDireccion = dirResult.rows[0].direccion_idusudireccion;
+
+        // Actualizar direccion
+        await client.query(`
+            UPDATE direccion
+            SET udircalle = $1,
+                udirnumexterior = $2,
+                udirnuminterior = $3,
+                udirreferencia = $4
+            WHERE idusudireccion = $5
+        `, [calle, numExterior, numInterior, referencia, idDireccion]);
+
+        // Actualizar usuario
+        await client.query(`
+            UPDATE usuario
+            SET usunom = $1,
+                usuprimerapellido = $2,
+                ususegundoapellido = $3,
+                usufechanacimiento = $4,
+                ususexo = $5,
+                usurfc = $6,
+                usucurp = $7,
+                usuvoluntarioempleado = $8,
+                rol_idrol = $9,
+                usuemail = $10
+            WHERE idusuario = $11
+        `, [
+            nombre,
+            primerApellido,
+            segundoApellido,
+            fechaNacimiento,
+            sexo,
+            rfc,
+            curp,
+            empleadoVoluntario,
+            rolId,
+            email,
+            id
+        ]);
+
+        await client.query("COMMIT");
+        res.json({ message: "Usuario actualizado correctamente" });
+
+    } catch (error) {
+        await client.query("ROLLBACK");
+        console.error(error);
+        res.status(500).json({ message: "Error actualizando usuario" });
+    } finally {
+        client.release();
+    }
+};
+
+export const cambiarEstadoUsuario = async (req, res) => {
+    const { id } = req.params;
+    const { activo } = req.body;
+
+    try {
+        await pool.query(
+            `UPDATE usuario 
+             SET usuactivo = $1 
+             WHERE idusuario = $2`,
+            [activo, id]
+        );
+
+        res.json({ message: "Estado actualizado" });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error cambiando estado" });
+    }
+};
+
+export const deleteUsuario = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        await pool.query(
+            `DELETE FROM usuario WHERE idusuario = $1`,
+            [id]
+        );
+
+        res.json({ message: "Usuario eliminado" });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error eliminando usuario" });
     }
 };
